@@ -1,0 +1,41 @@
+{
+  "simulation_metadata": {
+    "scenario_id": "strike-attempt-001",
+    "timestamp": "2026-01-21T14:30:00Z",
+    "operator": "simulation-engine",
+    "version": "1.0.0"
+  },
+  "ball_parameters": {
+    "mass_kg": 6.8,
+    "radius_m": 0.1085,
+    "initial_velocity_ms": 8.5,
+    "rotational_speed_rpm": 320,
+    "launch_angle_deg": 0.3,
+    "axis_tilt_deg": 10
+  },
+  "lane_conditions": {
+    "friction_coefficient": 0.044,
+    "oil_pattern": "house",
+    "oil_distance_m": 11.89,
+    "lane_length_m": 18.29,
+    "lane_width_m": 1.067
+  },
+  "release_point": {
+    "lateral_offset_m": 0.0,
+    "target_board": 10,
+    "breakpoint_board": 7
+  },
+  "pin_setup": {
+    "pin_mass_kg": 1.58,
+    "pin_height_m": 0.381,
+    "pin_spacing_m": 0.305,
+    "coefficient_restitution": 0.72
+  },
+  "simulation_settings": {
+    "time_step_s": 0.001,
+    "max_duration_s": 5.0,
+    "enable_chain_reaction": true,
+    "enable_deflection": true,
+    "random_seed": 42
+  }
+}
