@@ -26,14 +26,14 @@ class BallParameters(BaseModel):
     )
     initial_velocity_ms: float = Field(
         ...,
-        ge=7.0,
-        le=10.0,
+        ge=7.5,
+        le=9.0,
         description="Ball speed at release in m/s (typical range: 7.5–9.0 m/s)",
     )
     rotational_speed_rpm: int = Field(
         ...,
-        ge=0,
-        le=600,
+        ge=200,
+        le=400,
         description="Ball rotation rate in RPM (typical range: 200–400)",
     )
     launch_angle_deg: float = Field(
