@@ -1,8 +1,18 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+# Streamlined subset of config exposed through API
+class CreateSimulationReq(BaseModel):
+    """Minimal parameters to create and queue a bowling simulation."""
+    
+    velocity: float = Field(..., ge=7.5, le=9.0, description="Ball speed in m/s")
+    rpm: int = Field(..., ge=200, le=400, description="Ball rotation rate in RPM")
+    friction: float = Field(..., ge=0.035, le=0.055, description="Surface friction coefficient")
+    angle: float = Field(..., ge=0.0, le=3.0, description="Launch angle in degrees")
+    lateral_offset: float = Field(..., ge=-0.1, le=0.1, description="Starting position offset in meters")
 
+# full breadth of config params for internal use and potential future API expansion
 class SimulationMetadata(BaseModel):
     """Metadata about the simulation run."""
 
@@ -149,10 +159,8 @@ class BowlingConfig(BaseModel):
         ..., description="Simulation execution parameters"
     )
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "simulation_metadata": {
                     "scenario_id": "strike-attempt-001",
@@ -195,4 +203,4 @@ class BowlingConfig(BaseModel):
                 },
             }
         }
-  
+    )

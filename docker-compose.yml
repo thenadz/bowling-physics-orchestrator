@@ -1,0 +1,62 @@
+services:
+  api-orchestrator:
+    build:
+      context: ./api-orchestrator
+      dockerfile: api-orchestrator.Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_URL: ${DB_URL}
+      QUEUE_HOST: queue
+    ports:
+      - "8888:80"
+    depends_on:
+      - db
+      - queue
+  
+  sim-worker:
+    build:
+      context: ./api-orchestrator
+      dockerfile: sim-worker.Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_URL: ${DB_URL}
+      QUEUE_HOST: ${QUEUE_HOST}
+      QUEUE_PORT: ${QUEUE_PORT}
+      QUEUE_NAME: ${QUEUE_NAME}
+    depends_on:
+      - db
+      - queue
+
+  db:
+    image: timescale/timescaledb:latest-pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  
+  queue:
+    image: redis:8.6
+    restart: unless-stopped
+    environment:
+      DB_URL: ${DB_URL}
+      QUEUE_HOST: ${QUEUE_HOST}
+      QUEUE_PORT: ${QUEUE_PORT}
+      QUEUE_NAME: ${QUEUE_NAME}
+
+    volumes:
+      - redis_data:/data
+  
+#  promethus:
+#    image: prom/prometheus:latest
+#    restart: unless-stopped
+#    volumes:
+#      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#    ports:
+#      - "9090:9090"
+
+volumes:
+  db_data:
+  redis_data:

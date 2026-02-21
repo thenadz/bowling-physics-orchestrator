@@ -1,8 +1,8 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from .simulation import SimulationMetadata
+from .bowling_config import SimulationMetadata
 
 
 class SimulationExecutionMetadata(SimulationMetadata):
@@ -95,17 +95,24 @@ class TrajectoryAnalysis(BaseModel):
     )
 
 
+class Coordinate(BaseModel):
+    """2D coordinate with lateral and down-lane components."""
+
+    x: float = Field(..., description="Lateral component (meters or m/s)")
+    y: float = Field(..., description="Down-lane component (meters or m/s)")
+
+
 class TelemetryPoint(BaseModel):
     """Single telemetry measurement from ball trajectory."""
 
     time_s: float = Field(..., ge=0.0, description="Time elapsed since release (seconds)")
-    position_m: dict = Field(
+    position_m: Coordinate = Field(
         ...,
-        description="Ball position {x, y} in meters (x=lateral, y=down-lane)",
+        description="Ball position in meters (x=lateral, y=down-lane)",
     )
-    velocity_ms: dict = Field(
+    velocity_ms: Coordinate = Field(
         ...,
-        description="Ball velocity {x, y} in m/s (x=lateral, y=down-lane)",
+        description="Ball velocity in m/s (x=lateral, y=down-lane)",
     )
     speed_ms: float = Field(..., ge=0.0, description="Total ball speed in m/s")
     rotation_rpm: float = Field(..., ge=0.0, description="Ball rotation rate in RPM")
@@ -166,15 +173,13 @@ class BowlingSimulationResults(BaseModel):
         ..., description="Physics model configuration and assumptions"
     )
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "simulation_metadata": {
-                    "scenario_id": "strike-attempt-001",
-                    "timestamp": "2026-01-21T14:30:00Z",
-                    "operator": "simulation-engine",
+    model_config = ConfigDict(
+            json_schema_extra={
+                "example": {
+                    "simulation_metadata": {
+                        "scenario_id": "strike-attempt-001",
+                        "timestamp": "2026-01-21T14:30:00Z",
+                        "operator": "simulation-engine",
                     "version": "1.0.0",
                     "execution_timestamp": "2026-01-22T04:01:14.827640+00:00Z",
                     "execution_duration_ms": 57.08,
@@ -235,3 +240,4 @@ class BowlingSimulationResults(BaseModel):
                 },
             }
         }
+    )
