@@ -6,7 +6,7 @@ import tempfile
 from app.sim.bowling.sim import BowlingSimulation
 from app.schemas.bowling_config import BowlingConfig
 
-def run_simulation(logger: logging.Logger, id: uuid.UUID, velocity: float, rpm: int, friction: float, launch_angle: float, lateral_offset: float) -> None:
+def run_simulation(logger: logging.Logger, id: uuid.UUID, velocity: float, rpm: int, friction: float, launch_angle: float, lateral_offset: float) -> Dict:
     # collect baseline codefied as the example JSON for our BowlingConfig model
     # this is the identical sample JSON originally shipped with sim.py
     json_dict = BowlingConfig.model_json_schema()['example']
@@ -27,6 +27,8 @@ def run_simulation(logger: logging.Logger, id: uuid.UUID, velocity: float, rpm: 
     
     logger.debug(f"Running simulation with config:\n{json_str}")
     
+    # since required sim interface requires file I/O, cleanest option
+    # is to use a temp file that'll get cleaned up automatically
     with tempfile.NamedTemporaryFile(mode='w+t') as tf:
         tf.write(json_str)
         tf.flush()
