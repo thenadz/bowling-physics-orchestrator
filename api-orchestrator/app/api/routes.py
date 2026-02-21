@@ -1,7 +1,7 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.schemas.bowling_config import CreateSimulationReq
 from app.schemas.simulation_results import Coordinate, TelemetryPoint
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Requirement: Submit bowling config (velocity, RPM, friction, angle) and queue job
-@router.post("/simulations")
+@router.post("/simulations", status_code=status.HTTP_202_ACCEPTED)
 async def create_simulation(
     request: CreateSimulationReq,
     service: SimulationService = Depends(get_simulation_service)
@@ -34,7 +34,7 @@ async def create_simulation(
     return CreateOrGetSimulationResp(simulation_id=sim.id, state=sim.status)
 
 # Requirement: Query job state (pending/running/completed/failed) with metadata
-@router.get("/simulations/{simulation_id}")
+@router.get("/simulations/{simulation_id}", status_code=status.HTTP_200_OK)
 async def get_simulation(simulation_id: uuid.UUID, service: SimulationService = Depends(get_simulation_service)) -> CreateOrGetSimulationResp:
     """
     Endpoint to retrieve the state of a bowling simulation by its ID.
@@ -51,7 +51,7 @@ async def get_simulation(simulation_id: uuid.UUID, service: SimulationService = 
     return CreateOrGetSimulationResp(simulation_id=simulation_id, state=simulation.status)
 
 # Requirement: Retrieve pins knocked, hook potential, impact velocity, execution time
-@router.get("/simulations/{simulation_id}/results")
+@router.get("/simulations/{simulation_id}/results", status_code=status.HTTP_200_OK)
 async def get_simulation_results(simulation_id: uuid.UUID, service: SimulationService = Depends(get_simulation_service)) -> GetSimulationResultsResp:
     """
     Endpoint to retrieve the results of a bowling simulation by its ID. Only call once the simulation has completed.
@@ -76,7 +76,7 @@ async def get_simulation_results(simulation_id: uuid.UUID, service: SimulationSe
     return GetSimulationResultsResp(simulation_id=simulation_id, results=results)
 
 # Requirement: Retrieve full trajectory data with downsampling options
-@router.get("/telemetry/{simulation_id}")
+@router.get("/telemetry/{simulation_id}", status_code=status.HTTP_200_OK)
 async def get_telemetry(simulation_id: uuid.UUID, service: SimulationService = Depends(get_simulation_service)) -> GetTelemetryResp:
     """
     Endpoint to retrieve the telemetry data of a bowling simulation by its ID.
@@ -105,7 +105,7 @@ async def get_telemetry(simulation_id: uuid.UUID, service: SimulationService = D
     return GetTelemetryResp(simulation_id=simulation_id, telemetry=telemetry)
 
 # Requirement: service up (if we get here, we're alive)
-@router.get("/health/live")
+@router.get("/health/live", status_code=status.HTTP_200_OK)
 def health_live():
     """
     Endpoint to check the liveness of the application.
@@ -115,7 +115,7 @@ def health_live():
     return HealthCheckResp(status=HealthCheckState.ALIVE)
 
 # Requirement: dependencies available
-@router.get("/health/ready")
+@router.get("/health/ready", status_code=status.HTTP_200_OK)
 async def health_ready(health: bool = Depends(get_health)) -> HealthCheckResp:
     """
     Endpoint to check the readiness of the application.
