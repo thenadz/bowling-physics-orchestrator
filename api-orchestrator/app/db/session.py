@@ -18,7 +18,7 @@ Base.metadata.create_all(engine)
 logger.info("Database tables created successfully.")
 
 DbSession = sessionmaker(
-  bind=engine,
-  autocommit=False,
-  autoflush=False
+    bind=engine,
+    autocommit=False,
+    autoflush=False
 )
