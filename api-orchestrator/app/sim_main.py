@@ -25,7 +25,7 @@ if __name__ == "__main__":
   while True:
     try:
       # block until a new simulation ID is available in the queue
-      item: tuple[str, str] | None = cast(tuple[str, str] | None, redis.blpop([settings.queue_name])) # type: ignore
+      item: tuple[str, str] | None = cast(tuple[str, str] | None, redis.blpop([settings.queue_name], timeout=30)) # type: ignore
       
       if item is None:
         logger.warning("Received null item from queue. Continuing.")

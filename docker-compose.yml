@@ -6,7 +6,10 @@ services:
     restart: unless-stopped
     environment:
       DB_URL: ${DB_URL}
-      QUEUE_HOST: queue
+      QUEUE_HOST: ${QUEUE_HOST}
+      QUEUE_PORT: ${QUEUE_PORT}
+      QUEUE_NAME: ${QUEUE_NAME}
+      QUEUE_PASSWORD: ${QUEUE_PASSWORD}
     ports:
       - "8888:80"
     depends_on:
@@ -23,6 +26,7 @@ services:
       QUEUE_HOST: ${QUEUE_HOST}
       QUEUE_PORT: ${QUEUE_PORT}
       QUEUE_NAME: ${QUEUE_NAME}
+      QUEUE_PASSWORD: ${QUEUE_PASSWORD}
     depends_on:
       - db
       - queue
@@ -39,13 +43,8 @@ services:
   
   queue:
     image: redis:8.6
+    command: redis-server --requirepass ${QUEUE_PASSWORD}
     restart: unless-stopped
-    environment:
-      DB_URL: ${DB_URL}
-      QUEUE_HOST: ${QUEUE_HOST}
-      QUEUE_PORT: ${QUEUE_PORT}
-      QUEUE_NAME: ${QUEUE_NAME}
-
     volumes:
       - redis_data:/data
   

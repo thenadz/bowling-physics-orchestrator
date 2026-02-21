@@ -21,11 +21,8 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 def get_redis() -> Generator[Redis, None, None]:
-    redis: Redis = RedisSession
-    try:
-        yield redis
-    finally:
-        redis.close()
+    # for redis we keep a pool of persistent connections across multiple transactions
+    yield RedisSession
 
 def get_simulation_service(db: Session = Depends(get_db), redis: Redis = Depends(get_redis)) -> SimulationService:
     return SimulationService(db, redis)

@@ -1,5 +1,11 @@
-from redis import Redis
+from redis import Redis, ConnectionPool
 from app.config import settings
 
-# TODO - consider using a connection pool for better performance in production environment
-RedisSession = Redis(host=settings.queue_host, port=settings.queue_port, decode_responses=True)
+
+pool = ConnectionPool(
+  host=settings.queue_host,
+  password=settings.queue_password,
+  port=settings.queue_port,
+  decode_responses=True)
+
+RedisSession = Redis(connection_pool=pool)
