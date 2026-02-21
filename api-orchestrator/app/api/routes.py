@@ -8,7 +8,7 @@ from app.schemas.simulation_results import Coordinate, TelemetryPoint
 from app.schemas.responses import CreateOrGetSimulationResp, GetSimulationResultsResp, SimulationResultsBody, GetTelemetryResp, HealthCheckResp
 from app.schemas.health_check_state import HealthCheckState
 from app.service.simulation_service import SimulationService
-from app.api.deps import get_simulation_service
+from app.api.deps import get_simulation_service, get_health
 
 logger = logging.getLogger(__name__)
 
@@ -116,12 +116,11 @@ def health_live():
 
 # Requirement: dependencies available
 @router.get("/health/ready")
-async def health_ready():
+async def health_ready(health: bool = Depends(get_health)) -> HealthCheckResp:
     """
     Endpoint to check the readiness of the application.
     Will return ready if all critical dependencies are available (e.g., database, message queuing service).
     """
-    status = HealthCheckState.READY # TODO - placeholder until actual dependency checks are implemented
+    status = HealthCheckState.READY if health else HealthCheckState.NOT_READY
     logger.debug(f"API health check (ready) endpoint called with status: {status}")
-    # TODO: add checks for critical dependencies (e.g., database connectivity, message queue availability) and return appropriate status
     return HealthCheckResp(status=status)
