@@ -1,4 +1,4 @@
-name: Build Docker Images (API/Orchestrator & Sim Worker)
+name: Docker Images (Build & Vulnerability Scan)
 
 on:
   push:

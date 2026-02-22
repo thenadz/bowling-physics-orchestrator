@@ -3,10 +3,12 @@ import json
 import uuid
 from datetime import datetime
 import tempfile
+from pathlib import Path
 from app.sim.bowling.sim import BowlingSimulation
 from app.schemas.bowling_config import BowlingConfig
+from app.schemas.simulation_results import BowlingSimulationResults
 
-def run_simulation(logger: logging.Logger, id: uuid.UUID, velocity: float, rpm: int, friction: float, launch_angle: float, lateral_offset: float) -> Dict:
+def run_simulation(id: uuid.UUID, velocity: float, rpm: int, friction: float, launch_angle: float, lateral_offset: float, logger: logging.Logger | None = None) -> BowlingSimulationResults:
     # collect baseline codefied as the example JSON for our BowlingConfig model
     # this is the identical sample JSON originally shipped with sim.py
     json_dict = BowlingConfig.model_json_schema()['example']
@@ -25,7 +27,8 @@ def run_simulation(logger: logging.Logger, id: uuid.UUID, velocity: float, rpm: 
     
     json_str: str = json.dumps(json_dict, indent=2)
     
-    logger.debug(f"Running simulation with config:\n{json_str}")
+    if logger is not None:
+        logger.debug(f"Running simulation with config:\n{json_str}")
     
     # since required sim interface requires file I/O, cleanest option
     # is to use a temp file that'll get cleaned up automatically
@@ -33,7 +36,11 @@ def run_simulation(logger: logging.Logger, id: uuid.UUID, velocity: float, rpm: 
         tf.write(json_str)
         tf.flush()
         
-        sim = BowlingSimulation(tf.name)
+        sim = BowlingSimulation(Path(tf.name))
     
-    sim_result: Dict = sim.run()
-    return sim_result
+    sim_result: dict = sim.run() # type: ignore - sim.py is not typed and we don't have control to add types there, so using dict here for now since we know sim returns a JSON-like dict structure
+    
+     # validate against our Pydantic model - will raise if any issues with sim output structure
+    parsed: BowlingSimulationResults = BowlingSimulationResults.model_validate(sim_result)
+    
+    return parsed

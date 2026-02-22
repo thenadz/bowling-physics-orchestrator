@@ -1,15 +1,16 @@
 """Shared test fixtures for common test data and mocks."""
 import uuid
-from datetime import datetime
-
 import pytest
+
+from datetime import datetime
+from sqlalchemy.orm import Session
 
 from app.db.models import Simulation, SimulationResult
 from app.schemas.simulation_state import SimulationState
 
 
 @pytest.fixture
-def sample_simulation(test_db_session):
+def sample_simulation(test_db_session: Session):
     """Create a sample pending simulation."""
     sim = Simulation(
         id=uuid.uuid7(),
@@ -27,7 +28,7 @@ def sample_simulation(test_db_session):
 
 
 @pytest.fixture
-def sample_completed_simulation_with_results(test_db_session):
+def sample_completed_simulation_with_results(test_db_session: Session):
     """Create a completed simulation with results."""
     sim = Simulation(
         id=uuid.uuid7(),

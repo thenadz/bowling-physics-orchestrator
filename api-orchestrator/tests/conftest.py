@@ -1,19 +1,16 @@
 """Pytest configuration and shared fixtures."""
-import os
-import sys
-
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
 
-# Add app to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from typing import Generator
+
+from sqlalchemy import Engine, create_engine
+from sqlalchemy.orm import sessionmaker, Session
 
 from app.db.models import Base
 
 
 @pytest.fixture(scope="session")
-def test_db_engine():
+def test_db_engine() -> Generator[Engine, None, None]:
     """Create in-memory SQLite database for testing."""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -22,7 +19,7 @@ def test_db_engine():
 
 
 @pytest.fixture
-def test_db_session(test_db_engine) -> Session:
+def test_db_session(test_db_engine: Engine) -> Generator[Session, None, None]:
     """Create a fresh database session for each test."""
     connection = test_db_engine.connect()
     transaction = connection.begin()
