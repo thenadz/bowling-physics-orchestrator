@@ -50,6 +50,12 @@ if __name__ == "__main__":
                 logger.error(f"Simulation ID {sim_id} from queue not found in database. Continuing.")
                 continue
             
+            # idempotency check - if sim is not in pending state, skip it since it means 
+            # another worker has already picked it up or queue replay sent us something already processed.
+            if sim.status != models.SimulationState.PENDING:
+                logger.error(f"Simulation ID {sim_id} is not in a pending state. Current state: {sim.status}. Skipping.")
+                continue
+            
             # mark simulation as in progress and flush to avoid other worker picking it up
             sim.status = models.SimulationState.RUNNING
             sim.started_at = datetime.now()
@@ -102,24 +108,27 @@ if __name__ == "__main__":
             db.flush()
         except Exception as e:
             logger.error(f"Error running simulation with ID: {sim_id}. Error: {e}")
-            if sim is not None:
-                # retry - increment retry count until configurable max retries is reached, then mark as failed
-                # TODO - exponential backoff and dead-letter queue for failed jobs would be good additions for production environment
-                if sim.retry_count > settings.queue_max_retries:
-                    logger.error(f"Simulation with ID: {sim_id} has exceeded max retries. Marking as failed.")
-                    
-                    sim.status = models.SimulationState.FAILED
-                    sim.error_msg = f"Exceeded max retries with error: {e}"
-                else:
-                    logger.info(f"Retrying simulation with ID: {sim_id} (retry count: {sim.retry_count}).")
-                    
-                    sim.status = models.SimulationState.PENDING
-                    sim.error_msg = f"Error on attempt {sim.retry_count} with error: {e}"
+            
+            # can't do much if we don't have simulation instance - move on
+            if sim is None: continue
+            
+            # retry - increment retry count until configurable max retries is reached, then mark as failed
+            # TODO - exponential backoff and dead-letter queue for failed jobs would be good additions for production environment
+            if sim.retry_count > settings.queue_max_retries:
+                logger.error(f"Simulation with ID: {sim_id} has exceeded max retries. Marking as failed.")
                 
-                sim.retry_count += 1
-                sim.completed_at = None
-                sim.results = None
-                sim.telemetry = []
+                sim.status = models.SimulationState.FAILED
+                sim.error_msg = f"Exceeded max retries with error: {e}"
+            else:
+                logger.info(f"Retrying simulation with ID: {sim_id} (retry count: {sim.retry_count}).")
+                
+                sim.status = models.SimulationState.PENDING
+                sim.error_msg = f"Error on attempt {sim.retry_count} with error: {e}"
+            
+            sim.retry_count += 1
+            sim.completed_at = None
+            sim.results = None
+            sim.telemetry = []
                 
         finally:
             # save off state of ORM before we kill DB connection
