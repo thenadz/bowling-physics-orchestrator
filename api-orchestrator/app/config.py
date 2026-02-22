@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     queue_port: int = 6379  # Port for the job queue
     queue_name: str = "simulation_jobs"  # Name of the job queue (e.g., Redis queue)
     queue_password: str = ""  # Password for the job queue (if applicable)
+    queue_max_retries: int = 3  # Max number of retries for failed jobs
     
     log_level: str = "INFO"  # Logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

@@ -46,6 +46,8 @@ services:
     command: redis-server --requirepass ${QUEUE_PASSWORD}
     restart: unless-stopped
     volumes:
+      # TODO: if protections provided by default RDB persistence are insufficient, consider switching to AOF.
+      # Trading runtime performance for loss of valuable pending simulations on crash.
       - redis_data:/data
   
 #  promethus:

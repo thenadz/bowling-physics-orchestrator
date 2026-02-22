@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.logging import configure_logging
 from app.db import models
-from app.db.session import DbSession
+from app.db.session import get_db_session
 from app.queue.session import RedisSession
 from app.service.simulation_service import SimulationService
 from app.sim.sim_harness import run_simulation
@@ -35,16 +35,17 @@ if __name__ == "__main__":
             logger.error(f"Error popping from the queue. Error: {e}")
             continue
         
-        sim_id: str = item[1]
+        sim_id: uuid.UUID = uuid.UUID(item[1])
         
         logger.info(f"Processing simulation with ID: {sim_id}")
         sim: models.Simulation | None = None
         db: Session | None = None
+        sim_result: BowlingSimulationResults | None = None
         try:
-            db = DbSession()
+            db = get_db_session()()
             sim_svc = SimulationService(db, redis)
             
-            sim = sim_svc.get_simulation(uuid.UUID(sim_id))
+            sim = sim_svc.get_simulation(sim_id)
             if sim is None:
                 logger.error(f"Simulation ID {sim_id} from queue not found in database. Continuing.")
                 continue
@@ -55,8 +56,8 @@ if __name__ == "__main__":
             db.flush()
             
             logger.debug(f"Running simulation with ID: {sim_id}")
-            sim_result: BowlingSimulationResults = run_simulation(
-                uuid.UUID(sim_id),
+            sim_result = run_simulation(
+                sim_id,
                 sim.velocity, sim.rpm, sim.friction, sim.launch_angle, sim.lateral_offset,
                 logger)
             logger.debug(f"Run completed for simulation with ID: {sim_id}")
@@ -102,19 +103,47 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"Error running simulation with ID: {sim_id}. Error: {e}")
             if sim is not None:
+                # retry - increment retry count until configurable max retries is reached, then mark as failed
+                # TODO - exponential backoff and dead-letter queue for failed jobs would be good additions for production environment
+                if sim.retry_count > settings.queue_max_retries:
+                    logger.error(f"Simulation with ID: {sim_id} has exceeded max retries. Marking as failed.")
+                    
+                    sim.status = models.SimulationState.FAILED
+                    sim.error_msg = f"Exceeded max retries with error: {e}"
+                else:
+                    logger.info(f"Retrying simulation with ID: {sim_id} (retry count: {sim.retry_count}).")
+                    
+                    sim.status = models.SimulationState.PENDING
+                    sim.error_msg = f"Error on attempt {sim.retry_count} with error: {e}"
+                
+                sim.retry_count += 1
                 sim.completed_at = None
-                sim.status = models.SimulationState.FAILED
-                sim.error_msg = str(e)
                 sim.results = None
-                sim.telemetry = None
-            continue
+                sim.telemetry = []
+                
         finally:
+            # save off state of ORM before we kill DB connection
+            sim_status = sim.status if sim is not None else models.SimulationState.FAILED
+            
+            # persist sim state & close DB session following above whether happy path or not
             if db is not None:
                 db.commit()
                 db.close()
+            else:
+                logger.critical(f"DB session was not available at end of sim loop for simulation with ID: {sim_id}. Unable to commit results.")
+                logger.critical(f"Simulation with ID: {sim_id} may be left in an inconsistent state. Manual intervention may be required.")
+            
+            # if we're retrying, re-queue
+            if sim_status == models.SimulationState.PENDING:
+                # re-enqueue the new simulation ID for processing by the worker
+                redis.lpush(settings.queue_name, str(sim_id))
+                logger.info(f"Re-enqueued simulation with ID: {sim_id} for processing.")
+                
         
         # log success and go around again
         logger.info(f"Completed simulation with ID: {sim_id}")
+        
+        if sim_result is None: continue
         logger.info(f"count(telemetry points): {len(sim_result.telemetry)}, " +
                     f"execution_duration_ms: {sim_result.simulation_metadata.execution_duration_ms}, " +
                     f"pins_knocked: {sim_result.simulation_results.pins_knocked}, " +
