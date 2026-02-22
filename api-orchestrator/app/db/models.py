@@ -12,7 +12,6 @@ class Base(DeclarativeBase):
 
 class Simulation(Base):
     """Represents a bowling simulation execution, including input parameters, status, results, and telemetry."""
-    
     __tablename__ = "simulations"
 
     # overall simulation details
@@ -27,11 +26,11 @@ class Simulation(Base):
     completed_at: Mapped[datetime | None] = mapped_column()
     
     # simulation input parameters
-    velocity: Mapped[float] = mapped_column()
-    rpm: Mapped[int] = mapped_column(SmallInteger)
-    friction: Mapped[float] = mapped_column()
-    launch_angle: Mapped[float] = mapped_column()
-    lateral_offset: Mapped[float] = mapped_column()
+    velocity: Mapped[float] = mapped_column(comment="Initial velocity of the bowling ball in m/s")
+    rpm: Mapped[int] = mapped_column(SmallInteger, comment="Rotations per meter traveled")
+    friction: Mapped[float] = mapped_column(comment="Friction coefficient of the lane")
+    launch_angle: Mapped[float] = mapped_column(comment="Launch angle of the bowling ball in degrees")
+    lateral_offset: Mapped[float] = mapped_column(comment="Lateral offset of the bowling ball from the center of the lane in meters")
     
     # simulation results
     results: Mapped["SimulationResult | None"] = relationship("SimulationResult", back_populates="simulation", uselist=False)
@@ -48,13 +47,13 @@ class SimulationResult(Base):
     __tablename__ = "simulation_results"
 
     simulation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("simulations.id"), primary_key=True)
-    execution_duration: Mapped[float] = mapped_column()
-    pins_knocked: Mapped[int] = mapped_column(SmallInteger)
-    impact_velocity: Mapped[float] = mapped_column()
-    hook_potential: Mapped[float] = mapped_column()
-    entry_angle: Mapped[float] = mapped_column()
-    ball_deflection: Mapped[float] = mapped_column()
-    trajectory_length: Mapped[float] = mapped_column()
+    execution_duration: Mapped[float] = mapped_column(comment="Total execution time of the simulation in milliseconds")
+    pins_knocked: Mapped[int] = mapped_column(SmallInteger, comment="Number of pins knocked down in the simulation")
+    impact_velocity: Mapped[float] = mapped_column(comment="Velocity of the ball at the moment of impact with the pins in m/s")
+    hook_potential: Mapped[float] = mapped_column(comment="Potential for the ball to hook based on its spin and lane conditions")
+    entry_angle: Mapped[float] = mapped_column(comment="Angle at which the ball enters the pin formation in degrees")
+    ball_deflection: Mapped[float] = mapped_column(comment="Deflection of the ball after hitting the pins in degrees")
+    trajectory_length: Mapped[float] = mapped_column(comment="Total length of the ball's trajectory in meters")
     
     pin_states: Mapped[List["PinState"]] = relationship("PinState", back_populates="simulation_results")
 
@@ -65,9 +64,9 @@ class PinState(Base):
     __tablename__ = "pin_states"
 
     simulation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("simulation_results.simulation_id"))
-    pin_number: Mapped[int] = mapped_column(SmallInteger)
-    knocked: Mapped[bool] = mapped_column()
-    impact_velocity: Mapped[float | None] = mapped_column()
+    pin_number: Mapped[int] = mapped_column(SmallInteger, comment="Pin number (1-10)")
+    knocked: Mapped[bool] = mapped_column(comment="Indicates whether the pin was knocked down")
+    impact_velocity: Mapped[float | None] = mapped_column(comment="Velocity of the ball at the moment of impact with the pin in m/s")
 
     simulation_results: Mapped["SimulationResult"] = relationship("SimulationResult", back_populates="pin_states", uselist=False)
     
@@ -80,13 +79,13 @@ class Telemetry(Base):
     __tablename__ = "telemetry"
 
     simulation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("simulations.id"))
-    time: Mapped[float] = mapped_column()
-    position_x: Mapped[float] = mapped_column()
-    position_y: Mapped[float] = mapped_column()
-    velocity_x: Mapped[float] = mapped_column()
-    velocity_y: Mapped[float] = mapped_column()
-    speed: Mapped[float] = mapped_column()
-    rotation: Mapped[float] = mapped_column()
+    time: Mapped[float] = mapped_column(comment="Time since the start of the simulation in seconds")
+    position_x: Mapped[float] = mapped_column(comment="X-coordinate of the ball's position in meters")
+    position_y: Mapped[float] = mapped_column(comment="Y-coordinate of the ball's position in meters")
+    velocity_x: Mapped[float] = mapped_column(comment="X-component of the ball's velocity in m/s")
+    velocity_y: Mapped[float] = mapped_column(comment="Y-component of the ball's velocity in m/s")
+    speed: Mapped[float] = mapped_column(comment="Magnitude of the ball's velocity in m/s")
+    rotation: Mapped[float] = mapped_column(comment="Rotation of the ball in degrees")
 
     simulation: Mapped["Simulation"] = relationship("Simulation", back_populates="telemetry", uselist=False)
     
