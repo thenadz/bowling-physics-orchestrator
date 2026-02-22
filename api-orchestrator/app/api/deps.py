@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.service.simulation_service import SimulationService
+from app.service.telemetry_service import TelemetryService
 
 from app.db.session import DbSession
 from app.queue.session import RedisSession
@@ -26,6 +27,9 @@ def get_redis() -> Generator[Redis, None, None]:
 
 def get_simulation_service(db: Session = Depends(get_db), redis: Redis = Depends(get_redis)) -> SimulationService:
     return SimulationService(db, redis)
+
+def get_telemetry_service(db: Session = Depends(get_db)) -> TelemetryService:
+    return TelemetryService(db)
 
 def get_health(db: Session = Depends(get_db), redis: Redis = Depends(get_redis)) -> bool:
     """Simple dependency to check if we can connect to the database and Redis."""
