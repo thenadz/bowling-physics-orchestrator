@@ -1,0 +1,20 @@
+name: Build Docker Images (API/Orchestrator & Sim Worker)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the API Gateway/Orchestrator image
+      run: docker compose build api-orchestrator
+    - name: Build the Simulation Worker image
+      run: docker compose build sim-worker
