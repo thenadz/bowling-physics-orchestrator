@@ -15,11 +15,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build the API Gateway/Orchestrator image
-      run: docker compose build -p bowling api-orchestrator
+      run: docker compose -p bowling build api-orchestrator
     - name: Save Orchestrator Image to tarball
       run: docker save -o api-orchestrator-image.tar bowling-api-orchestrator
     - name: Build the Simulation Worker image
-      run: docker compose build -p bowling sim-worker
+      run: docker compose -p bowling build sim-worker
     - name: Save Orchestrator Image to tarball
       run: docker save -o sim-worker-image.tar bowling-sim-worker
     - name: Trivy Scan (API Gateway/Orchestrator)
