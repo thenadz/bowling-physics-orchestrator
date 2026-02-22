@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
-class AppStatus(Enum):
-    STARTING = 1
-    RUNNING = 2
-    STOPPING = 3
-    STOPPED = 4
+class AppStatus(StrEnum):
+    STARTING = "starting"
+    RUNNING = "running"
+    STOPPING = "stopping"
+    STOPPED = "stopped"

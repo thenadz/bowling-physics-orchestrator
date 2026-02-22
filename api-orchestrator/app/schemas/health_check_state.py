@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class HealthCheckState(Enum):
-    ALIVE = 1
-    READY = 2
-    NOT_READY = 3
+class HealthCheckState(StrEnum):
+    ALIVE = "alive"
+    READY = "ready"
+    NOT_READY = "not_ready"

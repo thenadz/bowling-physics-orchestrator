@@ -1,8 +1,8 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SimulationState(Enum):
-    PENDING = 1
-    RUNNING = 2
-    COMPLETED = 3
-    FAILED = 4
+class SimulationState(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
