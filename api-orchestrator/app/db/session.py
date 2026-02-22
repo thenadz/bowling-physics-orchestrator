@@ -1,24 +1,36 @@
 import logging
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, Engine
+from sqlalchemy.orm import sessionmaker, Session
 
 from app.config import settings
 from app.db.models import Base
 
 logger = logging.getLogger(__name__)
 
-engine = create_engine(
-    settings.db_url
-)
+# TODO - lazy singleton pattern avoids startup race condition, however there is
+# still a risk of runtime connection issues in event of transient DB failure.
+# For production deployent, this will require furhter hardening.
+_engine: Engine | None = None
+_db_session: sessionmaker[Session] | None = None
 
-# Create all tables associated with Base.metadata in the database
-# TODO: for production, need to leverage Alembic for proper incremental migrations
-Base.metadata.create_all(engine)
-logger.info("Database tables created successfully.")
+def get_engine() -> Engine:
+    global _engine
+    if _engine is None:
+        _engine = create_engine(settings.db_url)
+        logger.info("Database engine created successfully.")
+        
+        # Create all tables associated with Base.metadata in the database
+        # TODO: for production, need to leverage Alembic for proper incremental migrations
+        try:
+            Base.metadata.create_all(_engine)
+        except Exception as e:
+            logger.critical(f"Error creating database tables: {e}")
+    
+    return _engine
 
-DbSession = sessionmaker(
-    bind=engine,
-    autocommit=False,
-    autoflush=False
-)
+def get_db_session() -> sessionmaker[Session]:
+    global _db_session
+    if _db_session is None:
+        _db_session = sessionmaker(bind=get_engine(), autocommit=False, autoflush=False)
+    return _db_session
