@@ -1,3 +1,7 @@
 # Ignore all .env files except example
 .env.*
 !.env.example
+
+# build artifacts
+__pycache__/
+*.pyc
