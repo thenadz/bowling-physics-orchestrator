@@ -5,17 +5,20 @@ services:
       dockerfile: api-orchestrator.Dockerfile
     restart: unless-stopped
     environment:
+      OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SANITIZE_FIELDS: Authorization,password,set-cookie,token
+      OTEL_RESOURCE_ATTRIBUTES: service.name=api-orchestrator
       DB_URL: ${DB_URL}
       QUEUE_HOST: ${QUEUE_HOST}
       QUEUE_PORT: ${QUEUE_PORT}
       QUEUE_NAME: ${QUEUE_NAME}
       QUEUE_PASSWORD: ${QUEUE_PASSWORD}
+      USER_SECRET_KEY: ${USER_SECRET_KEY}
     ports:
       - "8888:80"
     depends_on:
       - db
       - queue
-  
+
   sim-worker:
     build:
       context: ./api-orchestrator
@@ -40,6 +43,8 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - db_data:/var/lib/postgresql/data
+#    ports:
+#      - "5432:5432"
   
   queue:
     image: redis:8.6
@@ -49,15 +54,30 @@ services:
       # TODO: if protections provided by default RDB persistence are insufficient, consider switching to AOF.
       # Trading runtime performance for loss of valuable pending simulations on crash.
       - redis_data:/data
-  
-#  promethus:
-#    image: prom/prometheus:latest
-#    restart: unless-stopped
-#    volumes:
-#      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+# TODO: following will ultimately make up our visualization stack, but not yet fully configured to demonstrate
+#  prometheus:
+#    image: prom/prometheus:v3.9.1
+#   restart: unless-stopped
+#   volumes:
+#      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#      - prometheus-data:/prometheus
 #    ports:
 #      - "9090:9090"
+#  
+#  grafana:
+#    image: grafana/grafana:latest
+#    restart: unless-stopped
+#    volumes:
+#      - grafana-data:/var/lib/grafana
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - GF_SECURITY_ADMIN_USER=${GF_USER}
+#      - GF_SECURITY_ADMIN_PASSWORD=${GF_PASSWORD}
 
 volumes:
   db_data:
   redis_data:
+#  prometheus-data:
+#  grafana-data:

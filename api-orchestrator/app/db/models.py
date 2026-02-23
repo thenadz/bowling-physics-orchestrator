@@ -92,3 +92,15 @@ class Telemetry(Base):
     __table_args__ = (
         PrimaryKeyConstraint("simulation_id", "time", name="pk_simulation_time"),
     )
+
+class User(Base):
+    """Represents a user in the system for authentication and authorization purposes."""
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False,
+        comment="Unique username for authentication")
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False,
+        comment="Hashed (Argon2) password for authentication")
+    disabled: Mapped[bool] = mapped_column(default=True,
+        comment="Indicates whether the user account is disabled")

@@ -27,6 +27,9 @@ class SimulationService:
             launch_angle=launch_angle,
             lateral_offset=lateral_offset
         )
+        
+        # TODO: there is a fail scenario here where DB successfully commits, then we
+        # fail to enqueue the job. For production this edges case should be resolved.
         self.db_session.add(new_simulation)
         self.db_session.commit()
         self.db_session.refresh(new_simulation)

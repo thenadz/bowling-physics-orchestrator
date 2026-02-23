@@ -1,14 +1,17 @@
 import logging
+from typing_extensions import Annotated
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.schemas.bowling_config import CreateSimulationReq
 from app.schemas.simulation_results import Coordinate, TelemetryPoint
 from app.schemas.responses import CreateOrGetSimulationResp, GetSimulationResultsResp, SimulationResultsBody, GetTelemetryResp, HealthCheckResp
 from app.schemas.health_check_state import HealthCheckState
+from app.schemas.auth import User
 from app.service.simulation_service import SimulationService
-from app.api.deps import get_simulation_service, get_health
+from app.service.telemetry_service import TelemetryService
+from app.api.deps import get_current_active_user, get_simulation_service, get_health, get_telemetry_service
 
 logger = logging.getLogger(__name__)
 
@@ -18,18 +21,28 @@ router = APIRouter()
 @router.post("/simulations", status_code=status.HTTP_202_ACCEPTED)
 async def create_simulation(
     request: CreateSimulationReq,
-    service: SimulationService = Depends(get_simulation_service)
+    service: SimulationService = Depends(get_simulation_service),
+    user: User = Depends(get_current_active_user)
 ) -> CreateOrGetSimulationResp:
     """
     Endpoint to create & queue a new bowling simulation based on provided configuration.
     """
     logger.debug(f"API request to create simulation with velocity={request.velocity}, rpm={request.rpm}, friction={request.friction}, angle={request.angle}, lateral_offset={request.lateral_offset}")
-    sim = service.create_simulation(
-        velocity=request.velocity,
-        rpm=request.rpm,
-        friction=request.friction,
-        launch_angle=request.angle,
-        lateral_offset=request.lateral_offset)
+
+    try:
+        sim = service.create_simulation(
+            velocity=request.velocity,
+            rpm=request.rpm,
+            friction=request.friction,
+            launch_angle=request.angle,
+            lateral_offset=request.lateral_offset)
+    except Exception as e:
+        # TODO: Only possible exceptions here appear to be DB or Redis related.
+        # FastAPI already handles range checks before we get to this method.
+        # Eventually identify specific possible exceptions and handle them appropriately.
+        # For now, avoid leaking failure details to the world.
+        logger.error(f"Error creating simulation: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create simulation")
     logger.debug(f"API created simulation {sim.id} with state {sim.status}")
     return CreateOrGetSimulationResp(simulation_id=sim.id, state=sim.status)
 
@@ -77,29 +90,37 @@ async def get_simulation_results(simulation_id: uuid.UUID, service: SimulationSe
 
 # Requirement: Retrieve full trajectory data with downsampling options
 @router.get("/telemetry/{simulation_id}", status_code=status.HTTP_200_OK)
-async def get_telemetry(simulation_id: uuid.UUID, service: SimulationService = Depends(get_simulation_service)) -> GetTelemetryResp:
+async def get_telemetry(
+    simulation_id: uuid.UUID,
+    stride: Annotated[int, Query(gt=0, le=100)] = 10,
+    service: TelemetryService = Depends(get_telemetry_service),
+    sim_service: SimulationService = Depends(get_simulation_service)) -> GetTelemetryResp:
     """
     Endpoint to retrieve the telemetry data of a bowling simulation by its ID.
     Only call once the simulation has completed.
+    
+    Query param `stride` can be used to downsample the telemetry data by only returning
+    every Nth data point (e.g., stride=10 returns every 10th point).
     """
     logger.debug(f"API request to get telemetry data for ID: {simulation_id}")
-    simulation = service.get_simulation(simulation_id)
     
-    # handle sim ID not found or telemetry not yet available or failed
-    if simulation is None or simulation.telemetry is None:
-        logger.warning(f"Telemetry data for ID: {simulation_id} not found.")
-        raise HTTPException(status_code=404, detail=f"Telemetry data for {simulation_id} not found")
+    # validate sim ID exists before querying telemetry
+    sim = sim_service.get_simulation(simulation_id)
+    if sim is None:
+        logger.warning(f"Simulation ID {simulation_id} not found.")
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     
-    logger.debug(f"API retrieved simulation {simulation_id} with telemetry data points: {len(simulation.telemetry)}")
+    telemetry = service.get_telemetry(simulation_id, stride)
     
-    # TODO - add query params for downsampling options (e.g., sample_rate, time_window) and apply to telemetry data before returning
+    logger.debug(f"API retrieved simulation {simulation_id} with telemetry data points: {len(telemetry)}")
+    
     telemetry = [TelemetryPoint(
         time_s=point.time,
         position_m=Coordinate(x=point.position_x, y=point.position_y),
         velocity_ms=Coordinate(x=point.velocity_x, y=point.velocity_y),
         speed_ms=point.speed,
         rotation_rpm=point.rotation
-    ) for point in simulation.telemetry]
+    ) for point in telemetry]
     
     logger.debug(f"API retrieved telemetry data for ID: {simulation_id}")
     return GetTelemetryResp(simulation_id=simulation_id, telemetry=telemetry)
