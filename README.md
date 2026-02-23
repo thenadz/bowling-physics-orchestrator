@@ -145,9 +145,10 @@ Due to the crude nature of required interface with the provided `sim.py`, a spec
 **Retry Logic**: In order to handle unexpected errors during simulation process, the worker does allow for a configurable number of retries (default 3). Right now the retries happen as soon as the simulation reaches the front of the queue, but in future implementations an exponential backoff function might help maximize successful simulations overall. A dead letter queue would also be a nice feature for the future.
 
 Simulation State Machine:
-
+```
 PENDING → RUNNING → COMPLETED
        ↘ RETRY ↘ FAILED
+```
 
 _Architecturally of note_, the Simulation Worker docker image is build from the same codebase as the API Gateway/Orchestrator image. At this time, the only distinction is a separate entrypoint: `sim_main.py`. This design is acceptable for sprint velocity, but warants a refactor into shared library package in a production roadmap.
 
