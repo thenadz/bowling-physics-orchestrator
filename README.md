@@ -61,6 +61,16 @@ Follow these steps to launch the system locally:
 
 All of the following will assume you did not choose to change where the API Gateway listens within the compose file (`localhost:8888`).
 
+### Seed Script
+
+For simulation of many simulations, a simulation simulator has been provided. Invoke as follows:
+
+```
+python api-orchestrator/scripts/seed.py --base-url http://localhost:8888  --password <whatever you want here>
+```
+
+Script has successfully fed up to 500 sequential simulations at 200ms interval. Minor backlog occured, but that cleared within minutes.
+
 ### Create & Follow a Simulation
 
 Navigate to http://localhost:8888/docs. This handy interface will let us test various endpoints without the need for any external tool such as cURL or Postman. That said, example queries used here can also be trivially converted for use there.
