@@ -36,7 +36,7 @@ class SimulationService:
         self.logger.info(f"Created new simulation with ID: {new_simulation.id}")
         
         # enqueue the new simulation ID for processing by the worker
-        self.redis_client.lpush(settings.queue_name, str(new_simulation.id))
+        self.redis_client.rpush(settings.queue_name, str(new_simulation.id))
         self.logger.debug(f"Enqueued simulation with ID: {new_simulation.id} for processing.")
         
         return new_simulation
