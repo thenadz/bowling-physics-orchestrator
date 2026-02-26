@@ -17,7 +17,9 @@ _db_session: sessionmaker[Session] | None = None
 def get_engine() -> Engine:
     global _engine
     if _engine is None:
-        _engine = create_engine(settings.db_url)
+        # args tell libpq to set session timezones
+        # NOTE: for SQLite, timezone handling is different and this won't have the intended effect
+        _engine = create_engine(settings.db_url, connect_args={"options": "-c timezone=utc"})
         logger.info("Database engine created successfully.")
         
         # Create all tables associated with Base.metadata in the database

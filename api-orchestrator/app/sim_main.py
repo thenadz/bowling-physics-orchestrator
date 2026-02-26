@@ -1,7 +1,7 @@
 import logging
 import uuid
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import cast
 from sqlalchemy.orm import Session
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
             
             # mark simulation as in progress and flush to avoid other worker picking it up
             sim.status = models.SimulationState.RUNNING
-            sim.started_at = datetime.now()
+            sim.started_at = datetime.now(timezone.utc)
             db.flush()
             
             logger.debug(f"Running simulation with ID: {sim_id}")
@@ -69,7 +69,7 @@ if __name__ == "__main__":
             logger.debug(f"Run completed for simulation with ID: {sim_id}")
             
             # populate results and mark simulation as completed
-            sim.completed_at = datetime.now()
+            sim.completed_at = datetime.now(timezone.utc)
             sim.status = models.SimulationState.COMPLETED
             
             sim.results = models.SimulationResult(
@@ -116,7 +116,7 @@ if __name__ == "__main__":
             # TODO - exponential backoff and dead-letter queue for failed jobs would be good additions for production environment
             if sim.retry_count > settings.queue_max_retries:
                 logger.error(f"Simulation with ID: {sim_id} has exceeded max retries. Marking as failed.")
-                
+                sim.completed_at = datetime.now(timezone.utc)
                 sim.status = models.SimulationState.FAILED
                 sim.error_msg = f"Exceeded max retries with error: {e}"
             else:

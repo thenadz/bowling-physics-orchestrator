@@ -2,7 +2,7 @@ from typing import List
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Enum, ForeignKey, Index, PrimaryKeyConstraint, SmallInteger, String
+from sqlalchemy import Enum, ForeignKey, Index, PrimaryKeyConstraint, SmallInteger, String, DateTime, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.schemas.simulation_state import SimulationState
@@ -16,14 +16,14 @@ class Simulation(Base):
 
     # overall simulation details
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
-    queued_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    queued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, comment="Timestamp when the simulation was queued for execution")
     
     # queue management
     status: Mapped[SimulationState] = mapped_column(Enum(SimulationState), default=SimulationState.PENDING)
     retry_count: Mapped[int] = mapped_column(SmallInteger, default=0)
     error_msg: Mapped[str | None] = mapped_column(String(255))
-    started_at: Mapped[datetime | None] = mapped_column()
-    completed_at: Mapped[datetime | None] = mapped_column()
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     
     # simulation input parameters
     velocity: Mapped[float] = mapped_column(comment="Initial velocity of the bowling ball in m/s")
